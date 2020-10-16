@@ -6,7 +6,7 @@ put melons in a shopping cart.
 Authors: Joel Burton, Christian Fernandez, Meggie Mahnken, Katie Byers.
 """
 
-from flask import Flask, render_template, redirect, flash
+from flask import Flask, render_template, redirect, flash, session
 import jinja2
 
 import melons
@@ -14,10 +14,10 @@ import melons
 app = Flask(__name__)
 
 # A secret key is needed to use Flask sessioning features
-app.secret_key = 'this-should-be-something-unguessable'
+app.secret_key = 'RaNcH dReSsInG'
 
 # Normally, if you refer to an undefined variable in a Jinja template,
-# Jinja silently ignores this. This makes debugging difficult, so we'll
+# Jinja silently igonores this. This makes debugging difficult, so we'll
 # set an attribute of the Jinja environment that says to make this an
 # error.
 app.jinja_env.undefined = jinja2.StrictUndefined
@@ -50,7 +50,7 @@ def show_melon(melon_id):
     Show all info about a melon. Also, provide a button to buy that melon.
     """
 
-    melon = melons.get_by_id("meli")
+    melon = melons.get_by_id(melon_id)
     print(melon)
     return render_template("melon_details.html",
                            display_melon=melon)
@@ -59,7 +59,7 @@ def show_melon(melon_id):
 @app.route("/cart")
 def show_shopping_cart():
     """Display content of shopping cart."""
-
+    
     # TODO: Display the contents of the shopping cart.
 
     # The logic here will be something like:
@@ -78,7 +78,23 @@ def show_shopping_cart():
     # Make sure your function can also handle the case wherein no cart has
     # been added to the session
 
-    return render_template("cart.html")
+    sales_cart = session.get('cart')
+
+    cart = []
+    total_cost = 0
+
+    if sales_cart == None:
+        flash("Your cart is empty")
+    
+    else:
+        for melon_id, count in sales_cart.items():
+            melon = melons.get_by_id(melon_id)
+            melon.quantity = count
+            melon.total_price = count * melon.price
+            cart.append(melon)
+            total_cost += melon.total_price
+
+    return render_template("cart.html", cart=cart, total_cost=total_cost)
 
 
 @app.route("/add_to_cart/<melon_id>")
@@ -100,7 +116,17 @@ def add_to_cart(melon_id):
     # - flash a success message
     # - redirect the user to the cart page
 
-    return "Oops! This needs to be implemented!"
+
+    if session.get('cart') == None:
+        session['cart'] = {}
+
+    sales_cart = session['cart']
+
+    sales_cart[melon_id] = sales_cart.get(melon_id, 0) + 1
+
+    flash('Successfully added to cart!')
+    print(sales_cart)
+    return redirect("/cart")
 
 
 @app.route("/login", methods=["GET"])
